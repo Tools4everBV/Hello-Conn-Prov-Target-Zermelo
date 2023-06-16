@@ -24,6 +24,7 @@
       - [Creating user and student accounts](#creating-user-and-student-accounts)
       - [Only the user account is managed](#only-the-user-account-is-managed)
       - [Updating account information](#updating-account-information)
+      - [Dynamic calculation of school year](#dynamic-calculation-of-school-year)
       - [Setting classroom information](#setting-classroom-information)
       - [Delete user](#delete-user)
       - [Creation / correlation process](#creation--correlation-process)
@@ -91,6 +92,43 @@ In the `Update` lifecycle action, the initial step involves retrieving the accou
 
 It is important to emphasize that the retrieval and comparison are performed on the __student__ account, while the subsequent updates are targeted at the __user__ account. This behavior is intentional and not an unintended issue. For further information, please refer to: [Only the user account is managed](#only-the-user-account-is-managed)
 
+#### Dynamic calculation of school year
+
+The schoolYear is calculated dynamically based on the `StartDate` of the primary contract.
+
+This means that; if a student commences on the: `1st of March 2023`, and the `PrimaryContract.StartDate` is set to the: `1st of March 2023`, the current school year should be: `2022-2023`.
+
+>:information_source:Prior to the end of July, the ongoing school year is identified as `2022/2023`. Starting from the 1st of August, the current school year transitions to `2023/2024`
+
+This mechanism ensures that the SchoolYear property accurately reflects the academic period during which the student accounts are created.
+
+Translated to PowerShell, this will appear as follows:
+
+```powershell
+function Get-CurrentSchoolYear {
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory)]
+        [DateTime]
+        $StartDate
+    )
+
+    $currentDate = Get-Date
+    $year = $currentDate.Year
+
+    # Determine the start and end dates of the current school year
+    if ($currentDate.Month -lt 8) {
+        $startYear = $year - 1
+        $endYear = $year
+    } else {
+        $startYear = $year
+        $endYear = $year + 1
+    }
+
+    Write-Output "$startYear-$endYear"
+}
+```
+
 #### Setting classroom information
 
 We have learned that, by creating the user account with the attribute `isStudent = true`, we are able to -simultaneously- create the student account. See also: [Creating user and student accounts](#creating-user-and-student-accounts)
@@ -125,8 +163,16 @@ function Get-DepartmentToAssignFromPrimaryContract {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
-        [Object]
-        $Contract
+        [string]
+        $SchoolName,
+
+        [Parameter(Mandatory)]
+        [string]
+        $DepartmentName,
+
+        [Parameter(Mandatory)]
+        [DateTime]
+        $ContractStartDate
     )
 
     try {
@@ -135,23 +181,16 @@ function Get-DepartmentToAssignFromPrimaryContract {
             Endpoint = 'departmentsofbranches'
         }
         $responseDepartments = (Invoke-ZermeloRestMethod @splatParams).response.data
+        [DateTime]$currentSchoolYear = Get-CurrentSchoolYear -ContractStartDate $ContractStartDate
+
         if ($null -ne $responseDepartments) {
+            $contractStartDate = $currentSchoolYear
+            $schoolNameToMatch = $SchoolName
+            $schoolYearToMatch = "$($contractStartDate.Year)" +'-'+ "$($contractStartDate.AddYears(1).Year)"
 
-            # Get the startDate from: PrimaryContract.StartDate
-            $contractStartDate = [DateTime]$Contract.StartDate
-
-            # Get the name of the school from: PrimaryContract.Organization.Name
-            $schoolName = $Contract.Organization.Name
-
-            # Get the year of the startDate and add another year
-            $schoolYear = "$($contractStartDate.Year)" +'-'+ "$($contractStartDate.AddYears(1).Year)"
-
-            # Lookup the departments with a code corresponding with the value in: PrimaryContract.Organization.Nam
             $lookup = $responseDepartments | Group-Object -AsHashTable -Property 'code'
-            $departments = $lookup[$Contract.Department.DisplayName]
-
-            # Match the department that will be assigned based on the schoolYear and schoolName
-            $departmentToAssign = $departments | Where-Object {$_.schoolInSchoolYearName -match "$schoolName $schoolYear"}
+            $departments = $lookup[$DepartmentName]
+            $departmentToAssign = $departments | Where-Object {$_.schoolInSchoolYearName -match "$schoolNameToMatch $schoolYearToMatch"}
             Write-Output $departmentToAssign
         }
     } catch {
