@@ -1,9 +1,4 @@
 # HelloID-Conn-Prov-Target-Zermelo
-
-<p align="center">
-  <img src="https://zermelo.nl/static/images/nav/zermelo.8ee5db22a007.svg" width="500">
-</p>
-
 | :information_source: Information |
 |:---------------------------|
 | This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.       |
@@ -11,7 +6,10 @@
 | :warning: Warning |
 |:---------------------------|
 | Note that this connector is "a work in progress" and therefore not ready to use in your production environment. |
-
+<br />
+<p align="center">
+  <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
+</p>
 ## Table of contents
 
 - [HelloID-Conn-Prov-Target-Zermelo](#helloid-conn-prov-target-zermelo)
