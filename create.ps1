@@ -14,7 +14,6 @@ $account = [PSCustomObject]@{
     code      = $p.ExternalId
     isStudent = $true
     firstName = $p.Name.GivenName
-    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -228,10 +227,6 @@ try {
     # Verify if the [account.code] has a value
     if ([string]::IsNullOrEmpty($($account.code))) {
         throw 'Mandatory attribute [account.code] is empty. Please make sure it is correctly mapped'
-    }
-
-    if ([string]::IsNullOrEmpty($department)) {
-        throw 'Mandatory property [$department] to define the department is empty. Verify your script mapping.'
     }
 
     # Validate the user account
