@@ -15,6 +15,7 @@ $auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
 $studentAccount = [PSCustomObject]@{
     userCode  = $p.ExternalId
     firstName = $p.Name.GivenName
+    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -23,6 +24,7 @@ $studentAccount = [PSCustomObject]@{
 $userAccount = [PSCustomObject]@{
     code      = $p.ExternalId
     firstName = $p.Name.GivenName
+    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -251,6 +253,10 @@ try {
 
     if ($aRef -ne $p.ExternalId){
         throw "aRef [$aRef] does not match with [$($p.ExternalId)]"
+    }
+
+    if ([string]::IsNullOrEmpty($department)) {
+        throw 'Mandatory property [$department] to define the department is empty. Verify your script mapping.'
     }
 
     # Validate the student account
