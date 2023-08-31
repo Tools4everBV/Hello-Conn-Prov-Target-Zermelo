@@ -14,6 +14,7 @@ $account = [PSCustomObject]@{
     code      = $p.ExternalId
     isStudent = $true
     firstName = $p.Name.GivenName
+    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -227,6 +228,15 @@ try {
     # Verify if the [account.code] has a value
     if ([string]::IsNullOrEmpty($($account.code))) {
         throw 'Mandatory attribute [account.code] is empty. Please make sure it is correctly mapped'
+    }
+    if ([string]::IsNullOrEmpty($department)) {
+        throw  'The mandatory property [$department] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($school)) {
+        throw 'The mandatory property [$school] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($startDate)) {
+        throw 'The mandatory property [$startDate] used to look up the department is empty. Please verify your script mapping.'
     }
 
     # Validate the user account
@@ -447,7 +457,7 @@ try {
 } catch {
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
     $success = $false
-    $auditMessage = "Could not $action Zermelo account. Error: $($errorObject.FriendlyError)"
+    $auditMessage = "Could not $action Zermelo account. Error: $($errorObject.FriendlyMessage)"
     Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
     $auditLogs.Add([PSCustomObject]@{
             Message = $auditMessage

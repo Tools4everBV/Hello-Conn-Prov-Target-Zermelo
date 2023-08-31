@@ -15,6 +15,7 @@ $auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
 $studentAccount = [PSCustomObject]@{
     userCode  = $p.ExternalId
     firstName = $p.Name.GivenName
+    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -23,6 +24,7 @@ $studentAccount = [PSCustomObject]@{
 $userAccount = [PSCustomObject]@{
     code      = $p.ExternalId
     firstName = $p.Name.GivenName
+    prefix    = $p.Name.FamilyNamePrefix
     lastName  = $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
@@ -253,6 +255,16 @@ try {
         throw "aRef [$aRef] does not match with [$($p.ExternalId)]"
     }
 
+    if ([string]::IsNullOrEmpty($department)) {
+        throw  'The mandatory property [$department] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($school)) {
+        throw 'The mandatory property [$school] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($startDate)) {
+        throw 'The mandatory property [$startDate] used to look up the department is empty. Please verify your script mapping.'
+    }
+
     # Validate the student account
     try {
         $responseStudent = Get-ZermeloAccount -Code $aRef -Type 'students'
@@ -375,7 +387,7 @@ try {
 } catch {
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
     $success = $false
-    $auditMessage = "Could not update Zermelo account. Error: $($errorObject.FriendlyError)"
+    $auditMessage = "Could not update Zermelo account. Error: $($errorObject.FriendlyMessage)"
     Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
     $auditLogs.Add([PSCustomObject]@{
             Message = $auditMessage
