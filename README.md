@@ -10,6 +10,7 @@
 <p align="center">
   <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
 </p>
+
 ## Table of contents
 
 - [HelloID-Conn-Prov-Target-Zermelo](#helloid-conn-prov-target-zermelo)
@@ -42,7 +43,7 @@ _HelloID-Conn-Prov-Target-Zermelo_ is a _Target_ connector. Zermelo is an LMS an
 
 ## Getting started
 
->:exclamation: The initial release of our connector, `version 1.0.0`, is built upon several fundamental assumptions. Make sure to verify if these assumptions apply to your environment and make changes accordingly.<br>__See also:__ [Underlying assumptions](#underlying-assumptions)
+>:exclamation: The initial release of our connector, `version 1.0.1`, is built upon several fundamental assumptions. Make sure to verify if these assumptions apply to your environment and make changes accordingly.<br>__See also:__ [Underlying assumptions](#underlying-assumptions)
 
 ### Connection settings
 
@@ -57,7 +58,7 @@ The following settings are required to connect to the API.
 
 #### Underlying assumptions
 
-Our initial `1.0.0` release of the connector is based on the following assumptions:
+Our initial `1.0.1` release of the connector is based on the following assumptions:
 
 - The `PrimaryContract.Department.DisplayName` corresponds to the assigned classroom for the student.
 
@@ -76,7 +77,7 @@ According to the official documentation of the Zermelo API, the procedure for cr
 
 Another important point to note is that, when creating a student account through the `/student` endpoint, it is essential to only include the `userCode` attribute in the JSON payload. Any other attributes associated with the student account creation process are not permitted to be modified. Because of this, we only manage the user account from HelloID. See also: [Only the user account is managed](#only-the-user-account-is-managed)
 
->:information_source:For the initial `1.0.0` release of the connector, we based our implementation on the assumption that, creating a user while including the attribute `isStudent = true`, is sufficient to create a student account.
+>:information_source:For the initial `1.0.1` release of the connector, we based our implementation on the assumption that, creating a user while including the attribute `isStudent = true`, is sufficient to create a student account.
 
 #### Only the user account is managed
 

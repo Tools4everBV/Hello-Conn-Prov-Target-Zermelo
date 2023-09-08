@@ -1,7 +1,7 @@
 #########################################
 # HelloID-Conn-Prov-Target-Zermelo-Create
 #
-# Version: 1.0.0
+# Version: 1.0.1
 #########################################
 # Initialize default values
 $config = $configuration | ConvertFrom-Json
@@ -13,9 +13,9 @@ $auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
 $account = [PSCustomObject]@{
     code      = $p.ExternalId
     isStudent = $true
-    firstName = $p.Name.GivenName
-    prefix    = $p.Name.FamilyNamePrefix
-    lastName  = $p.Name.FamilyName
+    firstName = Remove-StringLatinCharacters $p.Name.GivenName
+    prefix    = Remove-StringLatinCharacters $p.Name.FamilyNamePrefix
+    lastName  = Remove-StringLatinCharacters $p.Name.FamilyName
     email     = $p.Contact.Business.Email
 }
 
@@ -221,6 +221,12 @@ function Invoke-ZermeloRestMethod {
             $PSCmdlet.ThrowTerminatingError($_)
         }
     }
+}
+
+function Remove-StringLatinCharacters
+{
+    PARAM ([string]$String)
+    [Text.Encoding]::ASCII.GetString([Text.Encoding]::GetEncoding("Cyrillic").GetBytes($String))
 }
 #endregion
 
