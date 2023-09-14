@@ -20,7 +20,7 @@ $studentAccount = [PSCustomObject]@{
     email     = $p.Contact.Business.Email
 }
 
-# Student account mapping
+# User account mapping
 $userAccount = [PSCustomObject]@{
     code      = $p.ExternalId
     firstName = Remove-StringLatinCharacters $p.Name.GivenName
