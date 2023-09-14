@@ -1,7 +1,7 @@
 #########################################
 # HelloID-Conn-Prov-Target-Zermelo-Delete
 #
-# Version: 1.0.0
+# Version: 1.0.1
 #########################################
 # Initialize default values
 $config = $configuration | ConvertFrom-Json
@@ -12,7 +12,7 @@ $auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
 
 # Student account mapping
 $account = [PSCustomObject]@{
-    code     = $p.ExternalId
+    code     = $aRef #$p.ExternalId
     archived = $true
 }
 
