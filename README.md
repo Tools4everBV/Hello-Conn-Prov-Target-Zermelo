@@ -1,19 +1,9 @@
+
 # HelloID-Conn-Prov-Target-Zermelo
-| :information_source: Information |
-|:---------------------------|
-| This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.       |
 
-| :warning: Warning |
-|:---------------------------|
-| Note that this connector is "a work in progress" and therefore not ready to use in your production environment. |
-<br />
-<p align="center">
-  <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
-</p>
+> [!IMPORTANT]
+> This repository contains the connector and configuration code only. The implementer is responsible to acquire the connection details such as username, password, certificate, etc. You might even need to sign a contract or agreement with the supplier before implementing this connector. Please contact the client's application manager to coordinate the connector requirements.
 
-| :warning: Warning |
-|:---------------------------|
-| Note that this connector is the Provisioning PowerShell V1 version. |
 <br />
 <p align="center">
   <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
@@ -25,6 +15,10 @@
   - [Table of contents](#table-of-contents)
   - [Introduction](#introduction)
   - [Getting started](#getting-started)
+  - [Getting started](#getting-started-1)
+    - [Provisioning PowerShell V2 connector](#provisioning-powershell-v2-connector)
+      - [Correlation configuration](#correlation-configuration)
+      - [Field mapping](#field-mapping)
     - [Connection settings](#connection-settings)
     - [Remarks](#remarks)
       - [Underlying assumptions](#underlying-assumptions)
@@ -34,7 +28,6 @@
       - [Dynamic calculation of school year](#dynamic-calculation-of-school-year)
       - [Setting classroom information](#setting-classroom-information)
       - [Delete user](#delete-user)
-      - [Creation / correlation process](#creation--correlation-process)
   - [Getting help](#getting-help)
   - [HelloID docs](#helloid-docs)
 
@@ -42,40 +35,97 @@
 
 _HelloID-Conn-Prov-Target-Zermelo_ is a _Target_ connector. Zermelo is an LMS and provides a set of REST API's that allow you to programmatically interact with its data. The HelloID connector uses the API endpoints listed in the table below.
 
-|Endpoint|Description|
-|------------|-----------|
-|/users|Create and manage user and student accounts|
-|/student|Retrieve information about student accounts|
-|/departmentOfBranches|Retrieve information about the classroom and schoolyear information|
-|/studentInDepartments|Manage student `departmentOfBranch` information|
+| Endpoint              | Description                                                          |
+| --------------------- | -------------------------------------------------------------------- |
+| /users                | Create and manage user and student accounts                          |
+| /student              | Retrieve information about student accounts                          |
+| /departmentOfBranches | Retrieve information about the classroom and school year information |
+| /studentInDepartments | Manage student `departmentOfBranch` information                      |
 
 ## Getting started
 
->:exclamation: The initial release of our connector, `version 1.0.1`, is built upon several fundamental assumptions. Make sure to verify if these assumptions apply to your environment and make changes accordingly.<br>__See also:__ [Underlying assumptions](#underlying-assumptions)
+> [!IMPORTANT]
+> The initial release of our connector, `version 1.0.0`, is built upon several fundamental assumptions. Make sure to verify if these assumptions apply to your environment and make changes accordingly __See also:__ [Underlying assumptions](#underlying-assumptions)
+
+The following lifecycle actions are available:
+
+| Action             | Description                          |
+| ------------------ | ------------------------------------ |
+| create.ps1         | PowerShell _create_ lifecycle action |
+| delete.ps1         | PowerShell _delete_ lifecycle action |
+| update.ps1         | PowerShell _update_ lifecycle action |
+| configuration.json | -              |
+| fieldMapping.json  | -                |
+
+## Getting started
+
+### Provisioning PowerShell V2 connector
+
+#### Correlation configuration
+
+The correlation configuration is used to specify which properties will be used to match an existing account within _Zermelo_ to a person in _HelloID_.
+
+To properly setup the correlation:
+
+1. Open the `Correlation` tab.
+
+2. Specify the following configuration:
+
+    | Setting                   | Value                             |
+    | ------------------------- | --------------------------------- |
+    | Enable correlation        | `True`                            |
+    | Person correlation field  | `PersonContext.Person.ExternalId` |
+    | Account correlation field | `Code`                            |
+
+> [!TIP]
+> _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
+
+#### Field mapping
+
+The field mapping can be imported by using the _fieldMapping.json_ file.
+
+The following fields are currently configured:
+
+| _Field_     | _Mapped to value_                        | _Actions_                          | _Type_    |
+| ----------- | ---------------------------------------- | ---------------------------------- | --------- |
+| _classRoom_ | `PrimaryContract.Department.DisplayName` | - create<br> - update              | `Field`   |
+| _code_      | `Person.ExternalId                       | - create<br> - update<br> - delete | `Field`   |
+| _email_     | `Person.Contact.Business.Email`          | - create<br> - update              | `Complex` |
+| _archived_  | `True`                                   | - delete                           | `Fixed`   |
+| _firstName_ | `Person.Name.GivenName`                  | - create<br> - update              | `Complex` |
+| _isStudent_ | `True`                                    | - create<br> - update              | `Fixed`   |
+| _lastName_  | `Person.Name.FamilyName`                 | - create<br> - update              | `Complex` |
+| _prefix_    | `Person.Name.FamilyNamePrefix`           | - create<br> - update              | `Complex` |
+
+> [!IMPORTANT]
+> The `email`, `firstName`, `lastName` and `prefix` all use a complex mapping that removes diacritical characters.
 
 ### Connection settings
 
 The following settings are required to connect to the API.
 
-|Setting|Description|Mandatory|
-|------------|-----------|-----------|
-|Token|The ApiToken to authorize against the Zermelo API|Yes|
-|BaseUrl|The URL of the Zermelo environment|Yes|
+| Setting | Description                                       | Mandatory |
+| ------- | ------------------------------------------------- | --------- |
+| Token   | The ApiToken to authorize against the Zermelo API | Yes       |
+| BaseUrl | The URL of the Zermelo environment                | Yes       |
 
 ### Remarks
 
 #### Underlying assumptions
 
-Our initial `1.0.1` release of the connector is based on the following assumptions:
+Our initial `1.0.0` release of the connector is based on the following assumptions:
 
 - The `PrimaryContract.Department.DisplayName` corresponds to the assigned classroom for the student.
 
->:information_source:To accurately set the classroom information for a student, additional lookup calls need to be made to retrieve the relevant details. For more information, see: [Setting classroom information](#setting-classroom-information)
+> [!IMPORTANT]
+> To accurately set the classroom information for a student, additional lookup calls need to be made to retrieve the relevant details. For more information, see: [Setting classroom information](#setting-classroom-information)
 
 - The `PrimaryContract.StartDate` represents the date when the school year is scheduled to commence.
->:information_source:In the Netherlands, this is typically on the 1st of August of the current school year.
 
-- The `PrimaryContract.Organization.Name` corresponds to the name of school.
+> [!IMPORTANT]
+> In the Netherlands, this is typically on the 1st of August of the current school year.
+
+- The `PrimaryContract.Organization.Name` corresponds to the name of the school.
 
 - Only the user account is created by HelloID, the student account will be subsequently created by setting the attribute `isStudent = true` on the user object. For more information, see: [Creating user and student accounts](#creating-user-and-student-accounts)
 
@@ -85,13 +135,15 @@ According to the official documentation of the Zermelo API, the procedure for cr
 
 Another important point to note is that, when creating a student account through the `/student` endpoint, it is essential to only include the `userCode` attribute in the JSON payload. Any other attributes associated with the student account creation process are not permitted to be modified. Because of this, we only manage the user account from HelloID. See also: [Only the user account is managed](#only-the-user-account-is-managed)
 
->:information_source:For the initial `1.0.1` release of the connector, we based our implementation on the assumption that, creating a user while including the attribute `isStudent = true`, is sufficient to create a student account.
+> [!IMPORTANT]
+> For the initial `1.0.0` release of the connector, we based our implementation on the assumption that, creating a user while including the attribute `isStudent = true`, is sufficient to create a student account.
 
 #### Only the user account is managed
 
 In the `create` lifecycle action, we have made the assumption that we only need to handle the correlation of the user account. This is because, by creating the user account with the attribute `isStudent = true`, we are able to -simultaneously- create the student account.
 
->:exclamation:Attributes related to the student account can only be modified through the user account. Therefore, modifications to attributes associated with the student account should be made by updating the corresponding attributes in the user account. This means that, from the perspective of HelloID, only the user account is managed and considered the __primary entity__.
+> [!IMPORTANT]
+> Attributes related to the student account can only be modified through the user account. Therefore, modifications to attributes associated with the student account should be made by updating the corresponding attributes in the user account. This means that, from the perspective of HelloID, only the user account is managed and considered the __primary entity__.
 
 #### Updating account information
 
@@ -105,7 +157,8 @@ The schoolYear is calculated dynamically based on the `StartDate` of the primary
 
 This means that; if a student commences on the: `1st of March 2023`, and the `PrimaryContract.StartDate` is set to the: `1st of March 2023`, the current school year should be: `2022-2023`.
 
->:information_source:Prior to the end of July, the ongoing school year is identified as `2022/2023`. Starting from the 1st of August, the current school year transitions to `2023/2024`
+> [!NOTE]
+> Prior to the end of July, the ongoing school year is identified as `2022/2023`. Starting from the 1st of August, the current school year transitions to `2023/2024`
 
 This mechanism ensures that the SchoolYear property accurately reflects the academic period during which the student accounts are created.
 
@@ -144,19 +197,19 @@ Subsequently, a student account must be assigned a `studentInDepartments` entity
 
 The following data is available to us in HelloID:
 
-|Name|Description|Where to find in Zermelo|Value|
-|------------|-----------|-----------|-----------|
-|Person.ExternalId|Student number|__/Student__<br>userCode|<br>0000001|
-|PrimaryContract.Department.DisplayName|Classroom|__/StudentInDepartment__<br> departmentOfBranchCode|<br>e2|
-|PrimaryContract.StartDate|School year|__/DepartmentOfBranch__<br>schoolInSchoolYearName|<br>Tavu 2023-2024|
-|PrimaryContract.Organization.Name|School name|__/SchoolInYear__<br> schoolName|<br>Tavu|
+| Name                                   | Description    | Where to find in Zermelo                            | Value              |
+| -------------------------------------- | -------------- | --------------------------------------------------- | ------------------ |
+| Person.ExternalId                      | Student number | __/Student__<br>userCode                            | <br>0000001        |
+| PrimaryContract.Department.DisplayName | Classroom      | __/StudentInDepartment__<br> departmentOfBranchCode | <br>e2             |
+| PrimaryContract.StartDate              | School year    | __/DepartmentOfBranch__<br>schoolInSchoolYearName   | <br>Tavu 2023-2024 |
+| PrimaryContract.Organization.Name      | School name    | __/SchoolInYear__<br> schoolName                    | <br>Tavu           |
 
 To assign the `studentInDepartment` entity, the following data is required:
 
-|Attribute|Description|
-|------------|-----------|
-|student|The unique identifier of the student|
-|departmentOfBranch|The unique identifier of a `DepartmentOfBranch` entity|
+| Attribute          | Description                                            |
+| ------------------ | ------------------------------------------------------ |
+| student            | The unique identifier of the student                   |
+| departmentOfBranch | The unique identifier of a `DepartmentOfBranch` entity |
 
 To obtain the `departmentOfBranch` information, it is necessary to perform a lookup in the `departmentOfBranch` endpoint. The matching criteria involve making the following comparisons:
 
@@ -216,19 +269,13 @@ For a visual representation of the relationships between the different entities,
 
 Currently the `delete` lifecycle action is set to _archive_ the user account using a `PUT` method.
 
-#### Creation / correlation process
-
-A new functionality is the possibility to update the account in the target system during the correlation process. By default, this behavior is disabled. Meaning, the account will only be created or correlated.
-
-You can change this behavior in the configuration by setting the checkbox `UpdatePersonOnCorrelate` to true in the configuration.
-
->:exclamation:Be aware that this might have unexpected implications.
-
 ## Getting help
 
-> _For more information on how to configure a HelloID PowerShell Target connector, please refer to our [documentation](https://docs.helloid.com/hc/en-us/articles/360012558020-Configure-a-custom-PowerShell-target-system) pages_
+> [!TIP]
+> _For more information on how to configure a HelloID PowerShell connector, please refer to our [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems.html) pages_.
 
-> _If you need help, feel free to ask questions on our [forum](https://forum.helloid.com)_
+> [!TIP]
+>  _If you need help, feel free to ask questions on our [forum](https://forum.helloid.com/forum/helloid-connectors/provisioning/4793-helloid-conn-prov-target-zermelo)_.
 
 ## HelloID docs
 
