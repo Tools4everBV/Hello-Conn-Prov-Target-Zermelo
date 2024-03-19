@@ -11,6 +11,14 @@
   <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
 </p>
 
+| :warning: Warning |
+|:---------------------------|
+| Note that this connector is the Provisioning PowerShell V1 version. |
+<br />
+<p align="center">
+  <img src="https://www.tools4ever.nl/connector-logos/zermelo-logo.png" width="500">
+</p>
+
 ## Table of contents
 
 - [HelloID-Conn-Prov-Target-Zermelo](#helloid-conn-prov-target-zermelo)
