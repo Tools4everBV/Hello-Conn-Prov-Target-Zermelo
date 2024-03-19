@@ -1,49 +1,10 @@
 #################################################
 # HelloID-Conn-Prov-Target-Zermelo-Update
-#
-# Version: 1.0.1
-# Provisioning PowerShell V1
+# PowerShell V2
 #################################################
-# Initialize default values
-$config = $configuration | ConvertFrom-Json
-$p = $person | ConvertFrom-Json
-$pd = $personDifferences | ConvertFrom-Json
-$aRef = $accountReference | ConvertFrom-Json
-$success = $false
-$auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-# Student account mapping
-$studentAccount = [PSCustomObject]@{
-    userCode  = $p.ExternalId
-    firstName = Remove-StringLatinCharacters $p.Name.GivenName
-    prefix    = Remove-StringLatinCharacters $p.Name.FamilyNamePrefix
-    lastName  = Remove-StringLatinCharacters $p.Name.FamilyName
-    email     = $p.Contact.Business.Email
-}
-
-# User account mapping
-$userAccount = [PSCustomObject]@{
-    code      = $p.ExternalId
-    firstName = Remove-StringLatinCharacters $p.Name.GivenName
-    prefix    = Remove-StringLatinCharacters $p.Name.FamilyNamePrefix
-    lastName  = Remove-StringLatinCharacters $p.Name.FamilyName
-    email     = $p.Contact.Business.Email
-}
-
-# Department / schoolyear mapping
-# These values are used in the `Get-DepartmentToAssignFromPrimaryContract` function to calculate the correct department
-$department = $p.PrimaryContract.Department.DisplayName
-$school     = $p.PrimaryContract.Organization.Name
-$startDate  = [DateTime]$p.PrimaryContract.StartDate
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
-
-# Set debug logging
-switch ($($config.IsDebug)) {
-    $true { $VerbosePreference = 'Continue' }
-    $false { $VerbosePreference = 'SilentlyContinue' }
-}
 
 #region functions
 function Get-ZermeloAccount {
@@ -138,12 +99,12 @@ function Get-CurrentSchoolYear {
 }
 
 
-function ConvertStringHashTableToObject {
+function ConvertTo-HashTableToObject {
     [CmdletBinding()]
     param (
         [Parameter(Mandatory)]
         [string]
-        $HashTableString
+        $string
     )
 
     $trimmedString = $HashTableString.TrimStart('@{').TrimEnd('}')
@@ -222,10 +183,10 @@ function Invoke-ZermeloRestMethod {
     )
 
     process {
-        $baseUrl = "$($config.BaseUrl)/api/v3"
+        $baseUrl = "$($actionContext.Configuration.BaseUrl)/api/v3"
         try {
             $headers = [System.Collections.Generic.Dictionary[[String],[String]]]::new()
-            $headers.Add('Authorization', "Bearer $($config.Token)")
+            $headers.Add('Authorization', "Bearer $($actionContext.Configuration.Token)")
 
             $splatParams = @{
                 Uri         = "$baseUrl/$Endpoint"
@@ -244,70 +205,70 @@ function Invoke-ZermeloRestMethod {
         }
     }
 }
-
-function Remove-StringLatinCharacters
-{
-    PARAM ([string]$String)
-    [Text.Encoding]::ASCII.GetString([Text.Encoding]::GetEncoding("Cyrillic").GetBytes($String))
-}
 #endregion
 
+
 try {
-    # Verify if the [$aRef] has a value
-    if ([string]::IsNullOrEmpty($($aRef))) {
-        throw 'Mandatory attribute [aRef] is empty.'
+    # Verify if [aRef] has a value
+    if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
+        throw 'The account reference could not be found'
+    }
+    if ([string]::IsNullOrEmpty($actionContext.Data.classRoom)) {
+        throw  'The mandatory property [classRoom] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($actionContext.data.schoolName)) {
+        throw 'The mandatory property [schoolName] used to look up the department is empty. Please verify your script mapping.'
+    }
+    if ([string]::IsNullOrEmpty($actionContext.Data.startDate)) {
+        throw 'The mandatory property [startDate] used to look up the department is empty. Please verify your script mapping.'
     }
 
-    if ($aRef -ne $p.ExternalId){
-        throw "aRef [$aRef] does not match with [$($p.ExternalId)]"
-    }
-
-    if ([string]::IsNullOrEmpty($department)) {
-        throw  'The mandatory property [$department] used to look up the department is empty. Please verify your script mapping.'
-    }
-    if ([string]::IsNullOrEmpty($school)) {
-        throw 'The mandatory property [$school] used to look up the department is empty. Please verify your script mapping.'
-    }
-    if ([string]::IsNullOrEmpty($startDate)) {
-        throw 'The mandatory property [$startDate] used to look up the department is empty. Please verify your script mapping.'
-    }
-
-    # Validate the student account
+    Write-Verbose "Verifying if a Zermelo account for [$($personContext.Person.DisplayName)] exists"
+    # Validate the user account
     try {
-        $responseStudent = Get-ZermeloAccount -Code $aRef -Type 'students'
+        $correlatedAccount = Get-ZermeloAccount -Code $actionContext.References.Account -Type 'users'
+        $outputContext.PreviousData = $correlatedAccount
     } catch {
         throw
     }
 
+    # Always compare the account against the current account in target system
     $actions = @()
-    # Compare Zermelo student account
-    $splatCompareProperties = @{
-        ReferenceObject  = @($responseStudent[0].PSObject.Properties)
-        DifferenceObject = @($studentAccount.PSObject.Properties)
+    if ($null -ne $correlatedAccount) {
+    # Compare Zermelo account
+        $splatCompareProperties = @{
+            ReferenceObject  = @($correlatedAccount[0].PSObject.Properties)
+            DifferenceObject = @($actionContext.Data.PSObject.Properties)
+        }
+        $studentPropertiesChanged = (Compare-Object @splatCompareProperties -PassThru).Where({$_.SideIndicator -eq '=>'})
+        if ($studentPropertiesChanged -and ($null -ne $correlatedAccount)) {
+            $actions += "Update-Account"
+            $dryRunMessage = "Account property(s) required to update: [$($studentPropertiesChanged.name -join ",")]"
+        } elseif (-not($studentPropertiesChanged)) {
+            $actions += 'NoChanges'
+            $dryRunMessage = 'No changes will be made to the account during enforcement'
+        } elseif ($null -eq $correlatedAccount) {
+            $actions += 'NotFound'
+            $dryRunMessage = "Zermelo account for: [$($personContext.Person.DisplayName)] not found. Possibly deleted"
+        }
+        Write-Verbose $dryRunMessage
     }
-    $studentPropertiesChanged = (Compare-Object @splatCompareProperties -PassThru).Where({$_.SideIndicator -eq '=>'})
-    if ($studentPropertiesChanged -and ($null -ne $responseStudent)) {
-        $actions += "Update-Account"
-        $dryRunMessage = "Account property(s) required to update: [$($studentPropertiesChanged.name -join ",")]"
-    } elseif (-not($studentPropertiesChanged)) {
-        $actions += 'NoChanges'
-        $dryRunMessage = 'No changes will be made to the account during enforcement'
-    } elseif ($null -eq $responseStudent) {
-        $actions += 'NotFound'
-        $dryRunMessage = "Zermelo account for: [$($p.DisplayName)] not found. Possibly deleted"
-    }
-    Write-Verbose $dryRunMessage
 
     # Check whether or not the contract department (classroom) has been updated
-    if (-not[string]::IsNullOrEmpty($pd.PrimaryContract.Department.DisplayName)){
-        $pdHash = ConvertStringHashTableToObject -HashTableString $pd.PrimaryContract.Department.DisplayName
-        if ($pdHash.Change -eq 'updated'){
+    if (-not[string]::IsNullOrEmpty($personContext.PreviousPerson.PrimaryContract.Department.DisplayName)){
+        $pdHashtable = ConvertTo-HashTableToObject -String $personContext.PreviousPerson.PrimaryContract.Department.DisplayName
+        if ($pdHashtable.Change -eq 'updated'){
             $actions += 'Update-Department'
-            $dryRunMessage = "Updating department to: [$($pdHash.New)]"
+            $dryRunMessage = "Updating department to: [$($pdHashtable.New)]"
 
             # Determine which departmentOfBranch will be assigned to the student
             try {
-                $departmentToAssign = Get-DepartmentToAssignFromPrimaryContract -SchoolName $school -DepartmentName $department -ContractStartDate $startDate
+                $splatGetDepartmentToAssign = @{
+                    SchoolName        = $actionContext.Data.schoolName
+                    DepartmentName    = $actionContext.Data.classRoom
+                    ContractStartDate = $actionContext.Data.startDate
+                }
+                $departmentToAssign = Get-DepartmentToAssignFromPrimaryContract @splatGetDepartmentToAssign
             } catch {
                 throw
             }
@@ -316,95 +277,86 @@ try {
             $dryRunMessage = 'No changes will be made to the department during enforcement'
         }
     }
-    Write-Verbose $dryRunMessage
 
-    # Add a informational message showing what will happen during enforcement
-    if ($dryRun -eq $true) {
-        Write-Information "[DryRun] $dryRunMessage"
+    # Add a message and the result of each of the validations showing what will happen during enforcement
+    if ($actionContext.DryRun -eq $true) {
+        Write-Verbose "[DryRun] $dryRunMessage" -Verbose
     }
 
-    if (-not($dryRun -eq $true)) {
-        foreach ($action in $actions){
-            switch ($action) {
-                'Update-Account' {
-                    Write-Verbose "Updating Zermelo account with accountReference: [$aRef]"
-                    $splatUpdateUserParams = @{
-                        Endpoint    = 'users'
-                        Method      = 'POST'
-                        Body        = ($userAccount | ConvertTo-Json)
+    # Process
+    if (-not($actionContext.DryRun -eq $true)) {
+        switch ($action) {
+            'Update-Account' {
+                Write-Verbose "Updating Zermelo account with accountReference: [$($actionContext.References.Account)]"
+                $splatUpdateUserParams = @{
+                    Endpoint    = 'users'
+                    Method      = 'POST'
+                    Body        = ($actionContext.Data | ConvertTo-Json)
+                    ContentType = 'application/json'
+                }
+                $null = Invoke-ZermeloRestMethod @splatUpdateUserParams
+
+                $outputContext.success = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                    Message = 'Update account was successful'
+                    IsError = $false
+                })
+                break
+            }
+
+            'Update-Department'{
+                Write-Verbose "Updating department for Zermelo account with accountReference: [$($actionContext.References.Account)]"
+                if ($pdHash.Change -eq 'updated'){
+                    $splatStudentInDepartmentParams = @{
+                        Endpoint = 'studentsindepartments'
+                        Method   = 'POST'
+                        Body = @{
+                            departmentOfBranch = $departmentToAssign.id
+                            student = $actionContext.Data.code
+                        } | ConvertTo-Json
                         ContentType = 'application/json'
                     }
-                    $null = Invoke-ZermeloRestMethod @splatUpdateUserParams
+                    $null = Invoke-ZermeloRestMethod @splatStudentInDepartmentParams
 
-                    $success = $true
-                    $auditLogs.Add([PSCustomObject]@{
-                        Message = 'Update account was successful'
+                    $outputContext.success = $true
+                    $outputContext.AuditLogs.Add([PSCustomObject]@{
+                        Message = 'Update department was successful'
                         IsError = $false
-                    })
-                    break
-                }
-
-                'Update-Department'{
-                    Write-Verbose "Updating department for Zermelo account with accountReference: [$aRef]"
-                    if ($pdHash.Change -eq 'updated'){
-                        $splatStudentInDepartmentParams = @{
-                            Endpoint = 'studentsindepartments'
-                            Method   = 'POST'
-                            Body = @{
-                                departmentOfBranch = $departmentToAssign.id
-                                student = $userAccount.code
-                            } | ConvertTo-Json
-                            ContentType = 'application/json'
-                        }
-                        $null = Invoke-ZermeloRestMethod @splatStudentInDepartmentParams
-
-                        $success = $true
-                        $auditLogs.Add([PSCustomObject]@{
-                            Message = 'Update department was successful'
-                            IsError = $false
-                        })
-                        break
-                    }
-                }
-
-                'NoChanges' {
-                    Write-Verbose "No changes to Zermelo account with accountReference: [$aRef]"
-
-                    $success = $true
-                    $auditLogs.Add([PSCustomObject]@{
-                        Message = 'No changes will be made to the account during enforcement'
-                        IsError = $false
-                    })
-                    break
-                }
-
-                'NotFound' {
-                    Write-Verbose "Zermelo account for: [$($p.DisplayName)] not found. Possibly deleted"
-
-                    $success = $false
-                    $auditLogs.Add([PSCustomObject]@{
-                        Message = "Zermelo account for: [$($p.DisplayName)] not found. Possibly deleted"
-                        IsError = $true
                     })
                     break
                 }
             }
+
+            'NoChanges' {
+                Write-Verbose "No changes to Zermelo account with accountReference: [$($actionContext.References.Account)]"
+
+                $outputContext.success = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                    Message = 'No changes will be made to the account during enforcement'
+                    IsError = $false
+                })
+                break
+            }
+
+            'NotFound' {
+                Write-Verbose "Zermelo account for: [$($personContext.Person.DisplayName)] not found. Possibly deleted"
+
+                $outputContext.success = $false
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                    Message = "Zermelo account for: [$($personContext.Person.DisplayName)] not found. Possibly deleted"
+                    IsError = $true
+                })
+                break
+            }
         }
     }
 } catch {
+    $outputContext.Success  = $false
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
-    $success = $false
     $auditMessage = "Could not update Zermelo account. Error: $($errorObject.FriendlyMessage)"
     Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
-    $auditLogs.Add([PSCustomObject]@{
+    $outputContext.AuditLogs.Add([PSCustomObject]@{
             Message = $auditMessage
             IsError = $true
         })
-} finally {
-    $result = [PSCustomObject]@{
-        Success   = $success
-        Account   = $account
-        Auditlogs = $auditLogs
-    }
-    Write-Output $result | ConvertTo-Json -Depth 10
 }
