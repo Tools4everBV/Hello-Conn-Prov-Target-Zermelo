@@ -1,30 +1,10 @@
-#########################################
+##################################################
 # HelloID-Conn-Prov-Target-Zermelo-Delete
-#
-# Version: 1.0.1
-# Provisioning PowerShell V1
-#########################################
-# Initialize default values
-$config = $configuration | ConvertFrom-Json
-$p = $person | ConvertFrom-Json
-$aRef = $AccountReference | ConvertFrom-Json
-$success = $false
-$auditLogs = [System.Collections.Generic.List[PSCustomObject]]::new()
-
-# Student account mapping
-$account = [PSCustomObject]@{
-    code     = $aRef #$p.ExternalId
-    archived = $true
-}
+# PowerShell V2
+##################################################
 
 # Enable TLS1.2
 [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor [System.Net.SecurityProtocolType]::Tls12
-
-# Set debug logging
-switch ($($config.IsDebug)) {
-    $true { $VerbosePreference = 'Continue' }
-    $false { $VerbosePreference = 'SilentlyContinue' }
-}
 
 #region functions
 function Get-ZermeloAccount {
@@ -121,10 +101,10 @@ function Invoke-ZermeloRestMethod {
     )
 
     process {
-        $baseUrl = "$($config.BaseUrl)/api/v3"
+        $baseUrl = "$($actionContext.Configuration.BaseUrl)/api/v3"
         try {
             $headers = [System.Collections.Generic.Dictionary[[String],[String]]]::new()
-            $headers.Add('Authorization', "Bearer $($config.Token)")
+            $headers.Add('Authorization', "Bearer $($actionContext.Configuration.Token)")
 
             $splatParams = @{
                 Uri         = "$baseUrl/$Endpoint"
@@ -146,80 +126,73 @@ function Invoke-ZermeloRestMethod {
 #endregion
 
 try {
-    # Verify if the [$aRef] has a value
-    if ([string]::IsNullOrEmpty($($aRef))) {
-        throw 'Mandatory attribute [aRef] is empty.'
+    # Verify if [aRef] has a value
+    if ([string]::IsNullOrEmpty($($actionContext.References.Account))) {
+        throw 'The account reference could not be found'
     }
 
-    Write-Verbose "Verifying if a $Name account for [$($p.DisplayName)] exists"
+    Write-Verbose "Verifying if a Zermelo account for [$($personContext.Person.DisplayName)] exists"
     try {
-        $responseUser = Get-ZermeloAccount -Code $aRef -Type 'users'
+        $correlatedAccount = Get-ZermeloAccount -Code $actionContext.References.Account -Type 'users'
     } catch {
         if ($_.Exception.Response.StatusCode -eq 'NotFound') {
             $action = 'NotFound'
-            $dryRunMessage = "$Name account for: [`$(`$p.DisplayName)] not found. Possibly already deleted. Skipping action"
+            $dryRunMessage = "$Name account for: [$($personContext.Person.DisplayName)] not found. Possibly already deleted. Skipping action"
         } else {
             throw
         }
     }
 
-    if ($responseUser){
-        $action = 'Found'
-        $dryRunMessage = "Delete $Name account for: [$($p.DisplayName)] will be executed during enforcement"
+    if ($null -ne $correlatedAccount) {
+        $action = 'DeleteAccount'
+        $dryRunMessage = "Delete Zermelo account: [$($actionContext.References.Account)] for person: [$($personContext.Person.DisplayName)] will be executed during enforcement"
+    } else {
+        $action = 'NotFound'
+        $dryRunMessage = "Zermelo account: [$($actionContext.References.Account)] for person: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
     }
-    Write-Verbose $dryRunMessage
 
-    # Add an auditMessage showing what will happen during enforcement
-    if ($dryRun -eq $true) {
-        Write-Warning "[DryRun] $dryRunMessage"
+    # Add a message and the result of each of the validations showing what will happen during enforcement
+    if ($actionContext.DryRun -eq $true) {
+        Write-Verbose "[DryRun] $dryRunMessage" -Verbose
     }
 
     # Process
-    if (-not($dryRun -eq $true)) {
-        Write-Verbose "Deleting $Name account with accountReference: [$aRef]"
-
-        switch ($action){
-            'Found'{
+    if (-not($actionContext.DryRun -eq $true)) {
+        switch ($action) {
+            'DeleteAccount' {
+                Write-Verbose "Deleting Zermelo account with accountReference: [$($actionContext.References.Account)]"
                 $splatUpdateUserParams = @{
-                    Endpoint    = "users/$aRef"
+                    Endpoint    = "users/$($actionContext.References.Account)"
                     Method      = 'PUT'
-                    Body        = ($account | ConvertTo-Json)
+                    Body        = ($actionContext.Data | ConvertTo-Json)
                     ContentType = 'application/json'
                 }
                 $null = Invoke-ZermeloRestMethod @splatUpdateUserParams
-                $success = $true
-                $auditLogs.Add([PSCustomObject]@{
+                $outputContext.Success = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
                     Message = 'Delete account was successful'
                     IsError = $false
                 })
                 break
             }
 
-            'NotFound'{
-                $auditLogs.Add([PSCustomObject]@{
-                    Message = "$Name account for: [$($p.DisplayName)] not found. Possibly already deleted. Skipping action"
+            'NotFound' {
+                $outputContext.Success  = $true
+                $outputContext.AuditLogs.Add([PSCustomObject]@{
+                    Message = "Zermelo account: [$($actionContext.References.Account)] for person: [$($personContext.Person.DisplayName)] could not be found, possibly indicating that it could be deleted, or the account is not correlated"
                     IsError = $false
                 })
                 break
             }
         }
-
-        $success = $true
     }
 } catch {
+    $outputContext.success = $false
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
-    $success = $false
     $auditMessage = "Could not delete Zermelo account. Error: $($errorObject.FriendlyError)"
     Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
-    $auditLogs.Add([PSCustomObject]@{
-            Message = $auditMessage
-            IsError = $true
-        })
-} finally {
-    $result = [PSCustomObject]@{
-        Success   = $success
-        Account   = $account
-        Auditlogs = $auditLogs
-    }
-    Write-Output $result | ConvertTo-Json -Depth 10
+    $outputContext.AuditLogs.Add([PSCustomObject]@{
+        Message = $auditMessage
+        IsError = $true
+    })
 }
