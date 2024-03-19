@@ -1,0 +1,175 @@
+{
+  "Version": "v1",
+  "MappingFields": [
+    {
+      "Name": "code",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update",
+            "Delete"
+          ],
+          "MappingMode": "Field",
+          "Value": "\"Person.ExternalId\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "isStudent",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create"
+          ],
+          "MappingMode": "Fixed",
+          "Value": "\"true\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "schoolName",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Field",
+          "Value": "\"Person.PrimaryContract.Organization.Name\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "startDate",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Field",
+          "Value": "\"Person.PrimaryContract.StartDate\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "firstName",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Complex",
+          "Value": "\"function deleteDiacriticalMarksAdditional(inputString) {\\r\\n    let map = {'A': '[ÀÁÂÃÄÅÆĀĂĄ]', 'a': '[àáâãäåæāăą]', 'C': '[ÇĆĈĊČ]', 'c': '[çćĉċč]', 'D': '[ĎĐ]', 'd': '[ďđ]', 'E': '[ÈÉÊËÐĒĔĖĘĚ]', 'e': '[èéêëðēĕėęě]', 'G': '[ĜĞĠĢ]', 'g': '[ĝğġģ]', 'H': '[ĤĦ]', 'h': '[ĥħ]', 'i': '[ìíîïĩīĭįıĳ]', 'I': '[ÌÍÎÏĨĪĬĮİĲ]', 'J': '[Ĵ]', 'j': '[ĵ]', 'K': '[Ķ]', 'k': '[ķĸ]', 'L': '[ĹĻĽĿŁ]', 'l': '[ĺļľŀł]', 'n': '[ñńņňŉŋ]', 'N': '[ÑŃŅŇŊ]', 'O': '[ÒÓÔÕÖØŌŎŐŒ]', 'o': '[òóôõöøōŏőœ]', 'P': '[Þ]', 'p': '[þ]', 'R': '[ŔŖŘ]', 'r': '[ŕŗř]', 'S': '[ŚŜŞŠ]', 's': '[ßśŝşšſ]', 'T': '[ŢŤŦ]', 't': '[ţťŧ]', 'U': '[ÙÚÛÜŨŪŬŮŰŲ]', 'u': '[ùúûüũūŭůűų]', 'W': '[Ŵ]', 'w': '[ŵ]', 'Y': '[ÝŶŸ]', 'y': '[ýÿŷ]', 'z': '[źżž]', 'Z': '[ŹŻŽ]'};\\r\\n    for (let pattern in map) {\\r\\n        inputString = inputString.replace(new RegExp(map[pattern], 'g'), pattern);\\r\\n    };\\r\\n    return inputString;\\r\\n}\\r\\ndeleteDiacriticalMarksAdditional(Person.Name.GivenName)\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "lastName",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Complex",
+          "Value": "\"function deleteDiacriticalMarksAdditional(inputString) {\\r\\n    let map = {'A': '[ÀÁÂÃÄÅÆĀĂĄ]', 'a': '[àáâãäåæāăą]', 'C': '[ÇĆĈĊČ]', 'c': '[çćĉċč]', 'D': '[ĎĐ]', 'd': '[ďđ]', 'E': '[ÈÉÊËÐĒĔĖĘĚ]', 'e': '[èéêëðēĕėęě]', 'G': '[ĜĞĠĢ]', 'g': '[ĝğġģ]', 'H': '[ĤĦ]', 'h': '[ĥħ]', 'i': '[ìíîïĩīĭįıĳ]', 'I': '[ÌÍÎÏĨĪĬĮİĲ]', 'J': '[Ĵ]', 'j': '[ĵ]', 'K': '[Ķ]', 'k': '[ķĸ]', 'L': '[ĹĻĽĿŁ]', 'l': '[ĺļľŀł]', 'n': '[ñńņňŉŋ]', 'N': '[ÑŃŅŇŊ]', 'O': '[ÒÓÔÕÖØŌŎŐŒ]', 'o': '[òóôõöøōŏőœ]', 'P': '[Þ]', 'p': '[þ]', 'R': '[ŔŖŘ]', 'r': '[ŕŗř]', 'S': '[ŚŜŞŠ]', 's': '[ßśŝşšſ]', 'T': '[ŢŤŦ]', 't': '[ţťŧ]', 'U': '[ÙÚÛÜŨŪŬŮŰŲ]', 'u': '[ùúûüũūŭůűų]', 'W': '[Ŵ]', 'w': '[ŵ]', 'Y': '[ÝŶŸ]', 'y': '[ýÿŷ]', 'z': '[źżž]', 'Z': '[ŹŻŽ]'};\\r\\n    for (let pattern in map) {\\r\\n        inputString = inputString.replace(new RegExp(map[pattern], 'g'), pattern);\\r\\n    };\\r\\n    return inputString;\\r\\n}\\r\\ndeleteDiacriticalMarksAdditional(Person.Name.FamilyName)\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "prefix",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Complex",
+          "Value": "\"function deleteDiacriticalMarksAdditional(inputString) {\\r\\n    let map = {'A': '[ÀÁÂÃÄÅÆĀĂĄ]', 'a': '[àáâãäåæāăą]', 'C': '[ÇĆĈĊČ]', 'c': '[çćĉċč]', 'D': '[ĎĐ]', 'd': '[ďđ]', 'E': '[ÈÉÊËÐĒĔĖĘĚ]', 'e': '[èéêëðēĕėęě]', 'G': '[ĜĞĠĢ]', 'g': '[ĝğġģ]', 'H': '[ĤĦ]', 'h': '[ĥħ]', 'i': '[ìíîïĩīĭįıĳ]', 'I': '[ÌÍÎÏĨĪĬĮİĲ]', 'J': '[Ĵ]', 'j': '[ĵ]', 'K': '[Ķ]', 'k': '[ķĸ]', 'L': '[ĹĻĽĿŁ]', 'l': '[ĺļľŀł]', 'n': '[ñńņňŉŋ]', 'N': '[ÑŃŅŇŊ]', 'O': '[ÒÓÔÕÖØŌŎŐŒ]', 'o': '[òóôõöøōŏőœ]', 'P': '[Þ]', 'p': '[þ]', 'R': '[ŔŖŘ]', 'r': '[ŕŗř]', 'S': '[ŚŜŞŠ]', 's': '[ßśŝşšſ]', 'T': '[ŢŤŦ]', 't': '[ţťŧ]', 'U': '[ÙÚÛÜŨŪŬŮŰŲ]', 'u': '[ùúûüũūŭůűų]', 'W': '[Ŵ]', 'w': '[ŵ]', 'Y': '[ÝŶŸ]', 'y': '[ýÿŷ]', 'z': '[źżž]', 'Z': '[ŹŻŽ]'};\\r\\n    for (let pattern in map) {\\r\\n        inputString = inputString.replace(new RegExp(map[pattern], 'g'), pattern);\\r\\n    };\\r\\n    return inputString;\\r\\n}\\r\\ndeleteDiacriticalMarksAdditional(Person.Name.FamilyNamePrefix)\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "email",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Complex",
+          "Value": "\"function deleteDiacriticalMarksAdditional(inputString) {\\r\\n    let map = {'A': '[ÀÁÂÃÄÅÆĀĂĄ]', 'a': '[àáâãäåæāăą]', 'C': '[ÇĆĈĊČ]', 'c': '[çćĉċč]', 'D': '[ĎĐ]', 'd': '[ďđ]', 'E': '[ÈÉÊËÐĒĔĖĘĚ]', 'e': '[èéêëðēĕėęě]', 'G': '[ĜĞĠĢ]', 'g': '[ĝğġģ]', 'H': '[ĤĦ]', 'h': '[ĥħ]', 'i': '[ìíîïĩīĭįıĳ]', 'I': '[ÌÍÎÏĨĪĬĮİĲ]', 'J': '[Ĵ]', 'j': '[ĵ]', 'K': '[Ķ]', 'k': '[ķĸ]', 'L': '[ĹĻĽĿŁ]', 'l': '[ĺļľŀł]', 'n': '[ñńņňŉŋ]', 'N': '[ÑŃŅŇŊ]', 'O': '[ÒÓÔÕÖØŌŎŐŒ]', 'o': '[òóôõöøōŏőœ]', 'P': '[Þ]', 'p': '[þ]', 'R': '[ŔŖŘ]', 'r': '[ŕŗř]', 'S': '[ŚŜŞŠ]', 's': '[ßśŝşšſ]', 'T': '[ŢŤŦ]', 't': '[ţťŧ]', 'U': '[ÙÚÛÜŨŪŬŮŰŲ]', 'u': '[ùúûüũūŭůűų]', 'W': '[Ŵ]', 'w': '[ŵ]', 'Y': '[ÝŶŸ]', 'y': '[ýÿŷ]', 'z': '[źżž]', 'Z': '[ŹŻŽ]'};\\r\\n    for (let pattern in map) {\\r\\n        inputString = inputString.replace(new RegExp(map[pattern], 'g'), pattern);\\r\\n    };\\r\\n    return inputString;\\r\\n}\\r\\ndeleteDiacriticalMarksAdditional(Person.Contact.Business.Email)\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "classRoom",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Create",
+            "Update"
+          ],
+          "MappingMode": "Field",
+          "Value": "\"Person.PrimaryContract.Department.DisplayName\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    },
+    {
+      "Name": "archived",
+      "Description": "",
+      "Type": "Text",
+      "MappingActions": [
+        {
+          "MapForActions": [
+            "Delete"
+          ],
+          "MappingMode": "Fixed",
+          "Value": "\"true\"",
+          "UsedInNotifications": false,
+          "StoreInAccountData": false
+        }
+      ]
+    }
+  ],
+  "UniqueFieldNames": []
+}
