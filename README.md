@@ -211,6 +211,13 @@ To assign the `studentInDepartment` entity, the following data is required:
 | student            | The unique identifier of the student                   |
 | departmentOfBranch | The unique identifier of a `DepartmentOfBranch` entity |
 
+>[!IMPORTANT]
+> If you receive the following error:<br>
+>
+> De prognose voor _{stundentId}_ in afdeling _{departofBranch]} moet een gewicht hebben dat tussen 1% en 100% ligt.
+>
+> This means that a `participationWeight` must be included in the JSON payload. This attribute is used to predict whether a student will succeed. However this is not always mandatory. At this point its unclear in which situation this attribute is mandatory. The _create_ lifcycle action in the _V1.0.1_ connector includes this attribute.
+
 To obtain the `departmentOfBranch` information, it is necessary to perform a lookup in the `departmentOfBranch` endpoint. The matching criteria involve making the following comparisons:
 
 - `departmentOfBranchCode` with the `PrimaryContract.Department.DisplayName`
@@ -280,3 +287,4 @@ Currently the `delete` lifecycle action is set to _archive_ the user account usi
 ## HelloID docs
 
 The official HelloID documentation can be found at: https://docs.helloid.com/
+
