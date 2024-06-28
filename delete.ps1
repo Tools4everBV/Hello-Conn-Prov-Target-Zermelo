@@ -114,7 +114,7 @@ function Invoke-ZermeloRestMethod {
             }
 
             if ($Body){
-                Write-Verbose 'Adding body to request'
+                Write-Information 'Adding body to request'
                 $splatParams['Body'] = $Body
             }
             Invoke-RestMethod @splatParams -Verbose:$false
@@ -131,7 +131,7 @@ try {
         throw 'The account reference could not be found'
     }
 
-    Write-Verbose "Verifying if a Zermelo account for [$($personContext.Person.DisplayName)] exists"
+    Write-Information "Verifying if a Zermelo account for [$($personContext.Person.DisplayName)] exists"
     try {
         $correlatedAccount = Get-ZermeloAccount -Code $actionContext.References.Account -Type 'users'
     } catch {
@@ -153,14 +153,14 @@ try {
 
     # Add a message and the result of each of the validations showing what will happen during enforcement
     if ($actionContext.DryRun -eq $true) {
-        Write-Verbose "[DryRun] $dryRunMessage" -Verbose
+        Write-Information "[DryRun] $dryRunMessage" -Verbose
     }
 
     # Process
     if (-not($actionContext.DryRun -eq $true)) {
         switch ($action) {
             'DeleteAccount' {
-                Write-Verbose "Deleting Zermelo account with accountReference: [$($actionContext.References.Account)]"
+                Write-Information "Deleting Zermelo account with accountReference: [$($actionContext.References.Account)]"
                 $splatUpdateUserParams = @{
                     Endpoint    = "users/$($actionContext.References.Account)"
                     Method      = 'PUT'
@@ -189,8 +189,9 @@ try {
 } catch {
     $outputContext.success = $false
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
+    Write-Verbose $errorObject
     $auditMessage = "Could not delete Zermelo account. Error: $($errorObject.FriendlyError)"
-    Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
+    Write-Warning "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
     $outputContext.AuditLogs.Add([PSCustomObject]@{
         Message = $auditMessage
         IsError = $true
