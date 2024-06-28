@@ -176,7 +176,7 @@ function Invoke-ZermeloRestMethod {
             }
 
             if ($Body){
-                Write-Verbose 'Adding body to request'
+                Write-Information 'Adding body to request'
                 $splatParams['Body'] = $Body
             }
             Invoke-RestMethod @splatParams -Verbose:$false
@@ -286,19 +286,26 @@ try {
 
     # Add a message and the result of each of the validations showing what will happen during enforcement
     if ($actionContext.DryRun -eq $true) {
-        Write-Verbose "[DryRun] $action Zermelo account for: [$($personContext.Person.DisplayName)], will be executed during enforcement. Department of student is: [$($departmentToAssign.Id)]" -Verbose
+        Write-Information "[DryRun] $action Zermelo account for: [$($personContext.Person.DisplayName)], will be executed during enforcement. Department of student is: [$($departmentToAssign.Id)]" -Verbose
     }
 
     # Process
     if (-not($actionContext.DryRun -eq $true)) {
         switch ($action) {
             'Create-Correlate' {
-                Write-Verbose 'Creating and correlating Zermelo account'
+                Write-Information 'Creating and correlating Zermelo account'
 
                 $splatCreateUserParams = @{
                     Endpoint    = 'users'
                     Method      = 'POST'
-                    Body        = ($actionContext.Data | ConvertTo-Json)
+                    Body        = @{
+                        code      = $actionContext.Data.code
+                        isStudent = $actionContext.Data.isStudent
+                        firstName = $actionContext.Data.firstName
+                        prefix    = $actionContext.Data.prefix
+                        lastName  = $actionContext.Data.lastName
+                        email     = $actionContext.Data.email
+                    } | ConvertTo-Json
                     ContentType = 'application/json'
                 }
                 $responseCreateAccount = Invoke-ZermeloRestMethod @splatCreateUserParams
@@ -319,6 +326,7 @@ try {
                             Body = @{
                                 departmentOfBranch = $departmentToAssign.id
                                 student = $actionContext.Data.code
+                                participationWeight = 1.00
                             } | ConvertTo-Json
                             ContentType = 'application/json'
                         }
@@ -331,7 +339,7 @@ try {
             }
 
             'Create-StudentAccount-Correlate-User'{
-                Write-Verbose 'Creating Zermelo student account and correlating user account'
+                Write-Information 'Creating Zermelo student account and correlating user account'
                 $splatCreateStudentParams = @{
                     Endpoint    = 'users'
                     Method      = 'POST'
@@ -362,7 +370,7 @@ try {
             }
 
             'Create-UserAccount-Correlate-User' {
-                Write-Verbose 'Creating Zermelo user and student account and correlating user account'
+                Write-Information 'Creating Zermelo user and student account and correlating user account'
                 $splatCreateUserParams = @{
                     Endpoint    = 'users'
                     Method      = 'POST'
@@ -400,7 +408,7 @@ try {
 
             # If we have both a user and student account, match the userCode. If a match is found, correlate
             'Correlate' {
-                Write-Verbose 'Correlating Zermelo user account'
+                Write-Information 'Correlating Zermelo user account'
                 $outputContext.Data = $responseUser.response.data
                 $outputContext.AccountReference = $responseUser.response.data.code
                 break
@@ -419,8 +427,9 @@ try {
 } catch {
     $outputContext.success = $false
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
+    Write-Verbose $errorObject
     $auditMessage = "Could not $action Zermelo account. Error: $($errorObject.FriendlyMessage)"
-    Write-Verbose "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
+    Write-Warning "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
     $outputContext.AuditLogs.Add([PSCustomObject]@{
             Message = $auditMessage
             IsError = $true
