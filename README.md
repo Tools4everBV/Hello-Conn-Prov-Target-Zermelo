@@ -14,17 +14,18 @@
 - [HelloID-Conn-Prov-Target-Zermelo](#helloid-conn-prov-target-zermelo)
   - [Table of contents](#table-of-contents)
   - [Introduction](#introduction)
+  - [API Documentation](#api-documentation)
   - [Getting started](#getting-started)
-  - [Getting started](#getting-started-1)
     - [Provisioning PowerShell V2 connector](#provisioning-powershell-v2-connector)
       - [Correlation configuration](#correlation-configuration)
       - [Field mapping](#field-mapping)
-    - [Connection settings](#connection-settings)
+    - [Configuration settings](#configuration-settings)
     - [Remarks](#remarks)
-      - [Underlying assumptions](#underlying-assumptions)
+      - [Important changes in version `1.1.0`](#important-changes-in-version-110)
+        - [Create a user (and student) account without assigning a department/school](#create-a-user-and-student-account-without-assigning-a-departmentschool)
+        - [School or classroom changes](#school-or-classroom-changes)
       - [Creating user and student accounts](#creating-user-and-student-accounts)
       - [Only the user account is managed](#only-the-user-account-is-managed)
-      - [Updating account information](#updating-account-information)
       - [Dynamic calculation of school year](#dynamic-calculation-of-school-year)
       - [Setting classroom information](#setting-classroom-information)
       - [Delete user](#delete-user)
@@ -38,9 +39,13 @@ _HelloID-Conn-Prov-Target-Zermelo_ is a _Target_ connector. Zermelo is an LMS an
 | Endpoint              | Description                                                          |
 | --------------------- | -------------------------------------------------------------------- |
 | /users                | Create and manage user and student accounts                          |
-| /student              | Retrieve information about student accounts                          |
 | /departmentOfBranches | Retrieve information about the classroom and school year information |
 | /studentInDepartments | Manage student `departmentOfBranch` information                      |
+
+## API Documentation
+
+The API documentation can be found on: https://support.zermelo.nl/guides/developers-api/examples/synchronizing-students#synchronizing-students_creating-students
+A swagger interface can be found on: https://{customer}.zportal.nl/static/swagger
 
 ## Getting started
 
@@ -54,10 +59,8 @@ The following lifecycle actions are available:
 | create.ps1         | PowerShell _create_ lifecycle action |
 | delete.ps1         | PowerShell _delete_ lifecycle action |
 | update.ps1         | PowerShell _update_ lifecycle action |
-| configuration.json | -              |
-| fieldMapping.json  | -                |
-
-## Getting started
+| configuration.json | -                                    |
+| fieldMapping.json  | -                                    |
 
 ### Provisioning PowerShell V2 connector
 
@@ -75,7 +78,7 @@ To properly setup the correlation:
     | ------------------------- | --------------------------------- |
     | Enable correlation        | `True`                            |
     | Person correlation field  | `PersonContext.Person.ExternalId` |
-    | Account correlation field | `Code`                            |
+    | Account correlation field | `code`                            |
 
 > [!TIP]
 > _For more information on correlation, please refer to our correlation [documentation](https://docs.helloid.com/en/provisioning/target-systems/powershell-v2-target-systems/correlation.html) pages_.
@@ -84,56 +87,44 @@ To properly setup the correlation:
 
 The field mapping can be imported by using the _fieldMapping.json_ file.
 
-The following fields are currently configured:
+### Configuration settings
 
-| _Field_     | _Mapped to value_                        | _Actions_                          | _Type_    |
-| ----------- | ---------------------------------------- | ---------------------------------- | --------- |
-| _classRoom_ | `PrimaryContract.Department.DisplayName` | - create<br> - update              | `Field`   |
-| _code_      | `Person.ExternalId                       | - create<br> - update<br> - delete | `Field`   |
-| _email_     | `Person.Contact.Business.Email`          | - create<br> - update              | `Complex` |
-| _archived_  | `True`                                   | - delete                           | `Fixed`   |
-| _firstName_ | `Person.Name.GivenName`                  | - create<br> - update              | `Complex` |
-| _isStudent_ | `True`                                    | - create<br> - update              | `Fixed`   |
-| _lastName_  | `Person.Name.FamilyName`                 | - create<br> - update              | `Complex` |
-| _prefix_    | `Person.Name.FamilyNamePrefix`           | - create<br> - update              | `Complex` |
+The following settings are required in order to use this connector:
 
-> [!IMPORTANT]
-> The `email`, `firstName`, `lastName` and `prefix` all use a complex mapping that removes diacritical characters.
-
-### Connection settings
-
-The following settings are required to connect to the API.
-
-| Setting | Description                                       | Mandatory |
-| ------- | ------------------------------------------------- | --------- |
-| Token   | The ApiToken to authorize against the Zermelo API | Yes       |
-| BaseUrl | The URL of the Zermelo environment                | Yes       |
+| Setting         | Description                                                                   | Mandatory | Default value            |
+| --------------- | ----------------------------------------------------------------------------- | --------- | ------------------------ |
+| Token           | The ApiToken to authorize against the Zermelo API                             | Yes       | -                        |
+| BaseUrl         | The URL of the Zermelo environment                                            | Yes       | -                        |
+| SchoolNameField | Mapping field name for the school or organization from the primary contract.  | Yes       | "Organization.Name"      |
+| ClassroomField  | Mapping field name for the classroom or department from the primary contract. | Yes       | "Department.DisplayName" |
 
 ### Remarks
 
-#### Underlying assumptions
+#### Important changes in version `1.1.0`
 
-Our initial `1.0.0` release of the connector is based on the following assumptions:
+##### Create a user (and student) account without assigning a department/school
 
-- The `PrimaryContract.Department.DisplayName` corresponds to the assigned classroom for the student.
+From version `1.1.0` its possible to create a user (and student) account without assigning a department/school. This means that; if a person within HelloID does not have a school / classRoom available, its still possible to create a Zermelo account.
 
-> [!IMPORTANT]
-> To accurately set the classroom information for a student, additional lookup calls need to be made to retrieve the relevant details. For more information, see: [Setting classroom information](#setting-classroom-information)
+To accommodate this change the following changes have been made:
 
-- The `PrimaryContract.StartDate` represents the date when the school year is scheduled to commence.
+- The department assignment has been moved to the _update_ lifecycle action.
+- A conditional `if ($actionContext.AccountCorrelated)` statement is added to the _update_ lifecycle action that will execute directly after correlation.
+  - Note that this will __only__ assign the department and will not update the user account.
+- The `participationWeight` field is added to the fieldMapping with a default value of `1.00`. This field is used within the JSON payload to update -or assign- a 'departmentOfBranch'.
 
-> [!IMPORTANT]
-> In the Netherlands, this is typically on the 1st of August of the current school year.
+##### School or classroom changes
 
-- The `PrimaryContract.Organization.Name` corresponds to the name of the school.
+Starting from version `1.1.0`, we've introduced additional logic to ensure that if either the school or classroom changes, the 'departmentOfBranch' will be updated accordingly. See also: [Setting classroom information](#setting-classroom-information)
 
-- Only the user account is created by HelloID, the student account will be subsequently created by setting the attribute `isStudent = true` on the user object. For more information, see: [Creating user and student accounts](#creating-user-and-student-accounts)
+To accommodate this change the following changes have been made:
+
+- To update the school or classroom, a comparison is made using `$personContext.PersonDifferences.PrimaryContract`.
+- The fields used for comparison are configurable via the [configuration](#configuration-settings). Ensure these fields align with the fieldMapping.
 
 #### Creating user and student accounts
 
 According to the official documentation of the Zermelo API, the procedure for creating a user account and a student account consists of two separate steps. Initially, the user account is created using the `/users` endpoint. Subsequently, the student account is created using the `/students` endpoint. However, contrary to the information provided in the official documentation, the process appears to be slightly different, and it seems that, creating a user account through the `/users` endpoint, while including the attribute `isStudent = true`, is sufficient to create a student account.
-
-Another important point to note is that, when creating a student account through the `/student` endpoint, it is essential to only include the `userCode` attribute in the JSON payload. Any other attributes associated with the student account creation process are not permitted to be modified. Because of this, we only manage the user account from HelloID. See also: [Only the user account is managed](#only-the-user-account-is-managed)
 
 > [!IMPORTANT]
 > For the initial `1.0.0` release of the connector, we based our implementation on the assumption that, creating a user while including the attribute `isStudent = true`, is sufficient to create a student account.
@@ -143,13 +134,7 @@ Another important point to note is that, when creating a student account through
 In the `create` lifecycle action, we have made the assumption that we only need to handle the correlation of the user account. This is because, by creating the user account with the attribute `isStudent = true`, we are able to -simultaneously- create the student account.
 
 > [!IMPORTANT]
-> Attributes related to the student account can only be modified through the user account. Therefore, modifications to attributes associated with the student account should be made by updating the corresponding attributes in the user account. This means that, from the perspective of HelloID, only the user account is managed and considered the __primary entity__.
-
-#### Updating account information
-
-In the `Update` lifecycle action, the initial step involves retrieving the account information to be updated. This information is then compared with the corresponding data in HelloID. If there are any differences, the update will be executed.
-
-It is important to emphasize that the retrieval and comparison are performed on the __student__ account, while the subsequent updates are targeted at the __user__ account. This behavior is intentional and not an unintended issue. For further information, please refer to: [Only the user account is managed](#only-the-user-account-is-managed)
+> Modifications to attributes associated with the student account should be made by updating the corresponding attributes in the user account. This means that, from the perspective of HelloID, only the user account is managed and considered the __primary entity__.
 
 #### Dynamic calculation of school year
 
@@ -191,9 +176,18 @@ function Get-CurrentSchoolYear {
 
 #### Setting classroom information
 
+Our initial `1.0.0` release of the connector is based on the following assumptions:
+
+- The `PrimaryContract.Department.DisplayName` corresponds to the assigned classroom for the student.
+- The `PrimaryContract.Organization.Name` corresponds to the name of the school.
+- The `PrimaryContract.StartDate` represents the date when the school year is scheduled to commence.
+
+> [!IMPORTANT]
+> In the Netherlands, the date when the school year is scheduled to commence typically is on the 1st of August of the current year.
+
 We have learned that, by creating the user account with the attribute `isStudent = true`, we are able to -simultaneously- create the student account. See also: [Creating user and student accounts](#creating-user-and-student-accounts)
 
-Subsequently, a student account must be assigned a `studentInDepartments` entity, which contains information about the classroom and, by extension, the school year. This assignment can only be achieved by performing a lookup and matching equivalent data.
+Subsequently, a student account can be assigned a `studentInDepartments` entity, which contains information about the classroom and, by extension, the school and school year. This assignment can only be achieved by performing a lookup and matching equivalent data.
 
 The following data is available to us in HelloID:
 
@@ -206,67 +200,16 @@ The following data is available to us in HelloID:
 
 To assign the `studentInDepartment` entity, the following data is required:
 
-| Attribute          | Description                                            |
-| ------------------ | ------------------------------------------------------ |
-| student            | The unique identifier of the student                   |
-| departmentOfBranch | The unique identifier of a `DepartmentOfBranch` entity |
-
->[!IMPORTANT]
-> If you receive the following error:<br>
->
-> De prognose voor _{stundentId}_ in afdeling _{departofBranch]} moet een gewicht hebben dat tussen 1% en 100% ligt.
->
-> This means that a `participationWeight` must be included in the JSON payload. This attribute is used to predict whether a student will succeed. However this is not always mandatory. At this point its unclear in which situation this attribute is mandatory. The _create_ lifcycle action in the _V1.0.1_ connector includes this attribute.
+| Attribute           | Description                                                                                                                         |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| student             | The unique identifier of the student                                                                                                |
+| departmentOfBranch  | The unique identifier of a `DepartmentOfBranch` entity                                                                              |
+| participationWeight | The portion of a student's grade based on their class involvement. This value must be a decimal and has a default value of: `1.00`. |
 
 To obtain the `departmentOfBranch` information, it is necessary to perform a lookup in the `departmentOfBranch` endpoint. The matching criteria involve making the following comparisons:
 
 - `departmentOfBranchCode` with the `PrimaryContract.Department.DisplayName`
 - `schoolInSchoolYearName` with the `PrimaryContract.StartDate` and `PrimaryContract.Organization.Name`
-
-Translated to PowerShell, this will appear as follows:
-
-```powershell
-function Get-DepartmentToAssignFromPrimaryContract {
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory)]
-        [string]
-        $SchoolName,
-
-        [Parameter(Mandatory)]
-        [string]
-        $DepartmentName,
-
-        [Parameter(Mandatory)]
-        [DateTime]
-        $ContractStartDate
-    )
-
-    try {
-        $splatParams = @{
-            Method   = 'GET'
-            Endpoint = 'departmentsofbranches'
-        }
-        $responseDepartments = (Invoke-ZermeloRestMethod @splatParams).response.data
-        [DateTime]$currentSchoolYear = Get-CurrentSchoolYear -ContractStartDate $ContractStartDate
-
-        if ($null -ne $responseDepartments) {
-            $contractStartDate = $currentSchoolYear
-            $schoolNameToMatch = $SchoolName
-            $schoolYearToMatch = "$($contractStartDate.Year)" +'-'+ "$($contractStartDate.AddYears(1).Year)"
-
-            $lookup = $responseDepartments | Group-Object -AsHashTable -Property 'code'
-            $departments = $lookup[$DepartmentName]
-            $departmentToAssign = $departments | Where-Object {$_.schoolInSchoolYearName -match "$schoolNameToMatch $schoolYearToMatch"}
-            Write-Output $departmentToAssign
-        }
-    } catch {
-        $PSCmdlet.ThrowTerminatingError($_)
-    }
-}
-```
-
-This function will be called as follows: `$departmentToAssign = Get-DepartmentToAssignFromPrimaryContract -Contract $p.PrimaryContract`
 
 For a visual representation of the relationships between the different entities, refer to the UML diagram below:
 
