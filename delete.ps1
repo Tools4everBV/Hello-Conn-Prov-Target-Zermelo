@@ -161,6 +161,7 @@ try {
         switch ($action) {
             'DeleteAccount' {
                 Write-Information "Deleting Zermelo account with accountReference: [$($actionContext.References.Account)]"
+                $actionContext.Data | Add-Member -MemberType NoteProperty -Name 'code' -Value $actionContext.References.Account
                 $splatUpdateUserParams = @{
                     Endpoint    = "users/$($actionContext.References.Account)"
                     Method      = 'PUT'
@@ -168,6 +169,7 @@ try {
                     ContentType = 'application/json'
                 }
                 $null = Invoke-ZermeloRestMethod @splatUpdateUserParams
+                
                 $outputContext.Success = $true
                 $outputContext.AuditLogs.Add([PSCustomObject]@{
                     Message = 'Delete account was successful'
@@ -189,7 +191,6 @@ try {
 } catch {
     $outputContext.success = $false
     $errorObject = Resolve-ZermeloError -ErrorRecord $_
-    Write-Verbose $errorObject
     $auditMessage = "Could not delete Zermelo account. Error: $($errorObject.FriendlyError)"
     Write-Warning "Error at Line '$($_.InvocationInfo.ScriptLineNumber)': $($_.InvocationInfo.Line). Error: $($errorObject.ErrorDetails)"
     $outputContext.AuditLogs.Add([PSCustomObject]@{
