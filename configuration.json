@@ -1,44 +1,56 @@
 [
-    {
-      "key": "BaseUrl",
-      "type": "input",
-      "defaultValue": "",
-      "templateOptions": {
-        "label": "BaseUrl",
-        "description": "The URL to the Zermelo API.",
-        "placeholder": "https://{customer}.zportal.nl",
-        "required": true
-      }
-    },
-    {
-        "key": "Token",
-        "type": "input",
-        "defaultValue": "",
-        "templateOptions": {
-          "type": "password",
-          "label": "Token",
-          "description": "The token to authenticate to the Zermelo API",
-          "required": true
-        }
-      },
-    {
-      "key": "UpdatePersonOnCorrelate",
-      "type": "checkbox",
-      "defaultValue": false,
-      "templateOptions": {
-        "label": "Update account during correlating",
-        "required": false,
-        "description": "This will update the account in the target application during correlation"
-      }
-    },
-    {
-      "key": "IsDebug",
-      "type": "checkbox",
-      "defaultValue": true,
-      "templateOptions": {
-        "label": "Toggle debug logging",
-        "description": "When toggled, debug logging will be displayed",
-        "required": false
-      }
+  {
+    "key": "BaseUrl",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "label": "BaseUrl",
+      "description": "The URL to the Zermelo API.",
+      "placeholder": "https://{customer}.zportal.nl",
+      "required": true
     }
-  ]
+  },
+  {
+    "key": "Token",
+    "type": "input",
+    "defaultValue": "",
+    "templateOptions": {
+      "type": "password",
+      "label": "Token",
+      "description": "The token to authenticate to the Zermelo API",
+      "required": true
+    }
+  },
+  {
+    "key": "IsDebug",
+    "type": "checkbox",
+    "defaultValue": true,
+    "templateOptions": {
+      "label": "Toggle debug logging",
+      "description": "When toggled, debug logging will be displayed",
+      "required": false
+    }
+  },
+  {
+    "key": "SchoolNameField",
+    "type": "input",
+    "defaultValue": "Organization.Name",
+    "templateOptions": {
+      "label": "SchoolNameField",
+      "description": "Mapping field name for the school or organization from the primary contract.",
+      "placeholder": "Organization.Name",
+      "required": true
+    }
+  },
+  {
+    "key": "ClassroomField",
+    "type": "input",
+    "defaultValue": "Department.DisplayName",
+    "templateOptions": {
+      "label": "ClassroomField",
+      "description": "Mapping field name for the classroom or department from the primary contract.",
+      "placeholder": "Department.DisplayName",
+      "required": true
+    }
+  }
+]
