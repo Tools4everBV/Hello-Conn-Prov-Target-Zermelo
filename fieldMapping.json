@@ -8,9 +8,7 @@
       "MappingActions": [
         {
           "MapForActions": [
-            "Create",
-            "Update",
-            "Delete"
+            "Create"
           ],
           "MappingMode": "Field",
           "Value": "\"Person.ExternalId\"",
