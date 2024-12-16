@@ -320,9 +320,10 @@ try {
     }
 
     # Separate 'Update-DepartmentOfBranch' from other actions to make sure we always loop through the actions in a specific order
-    $firstActions = $actions | Where-Object { $_ -ne "Update-DepartmentOfBranch" }
-    $lastAction = $actions | Where-Object { $_ -eq "Update-DepartmentOfBranch" }
-    $orderedActions = @($firstActions, $lastAction)
+    $orderedActions = @($actions | Where-Object { $_ -notin @('Update-DepartmentOfBranch') })
+    if ($actions -contains 'Update-DepartmentOfBranch') {
+        $orderedActions += 'Update-DepartmentOfBranch'
+    }
 
     # Process
     if (-not($actionContext.DryRun -eq $true)) {
@@ -401,10 +402,19 @@ try {
                         } | ConvertTo-Json
                         ContentType = 'application/json'
                     }
-                    $null = Invoke-ZermeloRestMethod @splatStudentInDepartmentParams
+                    try {
+                        $null = Invoke-ZermeloRestMethod @splatStudentInDepartmentParams
+                        $auditLogMessage = 'DepartmentOfBranch created'
+                    } catch {
+                        if ($_.Exception.StatusCode -eq 409){
+                            $auditLogMessage = 'DepartmentOfBranch already exists'
+                        } else {
+                            throw
+                        }
+                    }
 
                     $outputContext.AuditLogs.Add([PSCustomObject]@{
-                        Message = "Update-DepartmentOfBranch was successful. Department updated to: [$($departmentToAssign.schoolInSchoolYearName)] with id: [$($departmentToAssign.id)]"
+                        Message = "Update-DepartmentOfBranch was successful with message: [$auditLogMessage]. Department set to: [$($departmentToAssign.schoolInSchoolYearName)] with id: [$($departmentToAssign.id)]"
                         IsError = $false
                     })
                     break
