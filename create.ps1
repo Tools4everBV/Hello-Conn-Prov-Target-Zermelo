@@ -259,8 +259,8 @@ try {
     }
 
     # Validate if we need to update the department
-    if (-not [string]::IsNullOrWhiteSpace($actionContext.Data.schoolName) -and
-    -not [string]::IsNullOrWhiteSpace($actionContext.Data.classRoom) -and
+    if (-not [string]::IsNullOrEmpty(($actionContext.Data.schoolName) -and
+    -not [string]::IsNullOrEmpty($actionContext.Data.classRoom) -and
     $actionContext.Data.startDate -ne [DateTime]::MinValue) {
         Write-Information 'Determine school year based on the startDate specified in [actionContext.Data.startDate]'
         $currentSchoolYear = Get-CurrentSchoolYear -ContractStartDate $($actionContext.Data.startDate)
