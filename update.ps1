@@ -348,12 +348,14 @@ try {
 
     # Add a message and the result of each of the validations showing what will happen during enforcement
     if ($actionContext.DryRun -eq $true) {
+        Write-Information "Actions to proces [$($actions)]"
         Write-Information "[DryRun] $dryRunMessage"
         Write-Information "[DryRun] $dryRunMessageDepartmentOfBranchToAssign"
     }
 
     # Process actions
     if (-not($actionContext.DryRun -eq $true)) {
+        Write-Information "Actions to proces [$($actions)]"
         foreach ($action in $actions) {
             switch ($action) {
                 'Update-Account' {

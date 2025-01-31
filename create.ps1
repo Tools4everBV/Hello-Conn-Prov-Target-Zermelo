@@ -311,22 +311,26 @@ try {
         }
     }
 
-    # Add a message and the result of each of the validations showing what will happen during enforcement
-    if ($actionContext.DryRun -eq $true) {
-        Write-Information "[DryRun] $action Zermelo account for: [$($personContext.Person.DisplayName)], will be executed during enforcement" -Verbose
-        if ($null -ne $dryRunMessageDepartmentOfBranchToAssign){
-            Write-Information "[DryRun] $dryRunMessageDepartmentOfBranchToAssign"
-        }
-    }
-
     # Separate 'Update-DepartmentOfBranch' from other actions to make sure we always loop through the actions in a specific order
     $orderedActions = @($actions | Where-Object { $_ -notin @('Update-DepartmentOfBranch') })
     if ($actions -contains 'Update-DepartmentOfBranch') {
         $orderedActions += 'Update-DepartmentOfBranch'
     }
 
+    # Add a message and the result of each of the validations showing what will happen during enforcement
+    if ($actionContext.DryRun -eq $true) {
+        Write-Information "[DryRun] $action Zermelo account for: [$($personContext.Person.DisplayName)], will be executed during enforcement"
+        Write-Information "Actions to proces [$($orderedActions)]"
+        if ($null -ne $dryRunMessageDepartmentOfBranchToAssign){
+            Write-Information "[DryRun] $dryRunMessageDepartmentOfBranchToAssign"
+        }
+    }
+
+
+
     # Process
     if (-not($actionContext.DryRun -eq $true)) {
+        Write-Information "Actions to proces [$($orderedActions)]"
         foreach ($action in $orderedActions){
             switch ($action) {
                 'Create-Correlate' {
