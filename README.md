@@ -120,7 +120,7 @@ Starting from version `1.1.0`, we've introduced additional logic to ensure that 
 To accommodate this change the following changes have been made:
 
 - To update the school or classroom, a comparison is made using `$personContext.PersonDifferences.PrimaryContract`.
-- The fields used for comparison are configurable via the [configuration](#configuration-settings). Ensure these fields align with the fieldMapping.
+- The fields used for comparison are configurable via the [configuration](#configuration-settings). Ensure these fields align with the fieldMapping `schoolName` and `classRoom`.
 
 #### Creating user and student accounts
 
@@ -155,7 +155,7 @@ function Get-CurrentSchoolYear {
     param (
         [Parameter(Mandatory)]
         [DateTime]
-        $StartDate
+        $ContractStartDate
     )
 
     $currentDate = Get-Date
@@ -164,13 +164,13 @@ function Get-CurrentSchoolYear {
     # Determine the start and end dates of the current school year
     if ($currentDate.Month -lt 8) {
         $startYear = $year - 1
-        $endYear = $year
     } else {
         $startYear = $year
-        $endYear = $year + 1
     }
 
-    Write-Output "$startYear-$endYear"
+    $schoolYearStartDate = (Get-Date -Year $startYear)
+
+    Write-Output $schoolYearStartDate
 }
 ```
 
